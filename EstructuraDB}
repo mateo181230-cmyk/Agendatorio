@@ -1,0 +1,61 @@
+/*ESTRUCTURA DE BASE DE DATOS ESPERADA:
+        
+        CREATE TABLE usuarios (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre VARCHAR(100) NOT NULL,
+    correo VARCHAR(150) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    rol VARCHAR(20) DEFAULT 'admin', ,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE personas (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre VARCHAR(100) NOT NULL,
+    telefono VARCHAR(20),
+    correo VARCHAR(150),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+        CREATE TABLE disponibilidad (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    fecha DATE NOT NULL,
+    hora_inicio TIME NOT NULL,
+    hora_fin TIME NOT NULL,
+    admin_id UUID,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_admin
+        FOREIGN KEY (admin_id)
+        REFERENCES usuarios(id)
+        ON DELETE SET NULL
+
+
+    CREATE TABLE reuniones (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    persona_id UUID NOT NULL,
+    disponibilidad_id UUID,
+    fecha DATE NOT NULL,
+    hora TIME NOT NULL,
+    estado VARCHAR(20) DEFAULT 'pendiente',
+    admin_id UUID,
+    conclusiones TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_persona
+        FOREIGN KEY (persona_id)
+        REFERENCES personas(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_disponibilidad
+        FOREIGN KEY (disponibilidad_id)
+        REFERENCES disponibilidad(id)
+        ON DELETE SET NULL,
+
+    CONSTRAINT fk_admin_reunion
+        FOREIGN KEY (admin_id)
+        REFERENCES usuarios(id)
+        ON DELETE SET NULL
+);
+
+);
+        */

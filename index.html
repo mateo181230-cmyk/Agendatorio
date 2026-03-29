@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda de Reuniones</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        agenda: {
+                            yellow: '#F1A42A',
+                            blue: '#0A3572',
+                            red: '#B82318',
+                            light: '#FDF4E6',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        body {
+            background-color: #FDF4E6;
+            color: #0A3572;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .tab-active { border-bottom: 2px solid #F1A42A; color: #0A3572; font-weight: 600; }
+        .tab-inactive { color: #6b7280; }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+
+    <!-- Navegación -->
+    <nav class="bg-agenda-blue text-white p-4 shadow-md sticky top-0 z-40">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold flex items-center gap-2">
+                <svg class="w-6 h-6 text-agenda-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                    </path>
+                </svg>
+                AgendApp
+            </h1>
+            <div class="flex gap-2 items-center" id="nav-buttons">
+                <button id="btn-logout" onclick="logoutUser()" class="hidden px-3 py-1 bg-agenda-red text-white rounded-md text-sm font-medium hover:bg-red-800 transition shadow-sm">Cerrar Sesión</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenedor Principal -->
+    <main class="flex-grow p-4 max-w-4xl mx-auto w-full">
+
+        <!-- VISTA AUTH USUARIOS (CLIENTES) -->
+        <section id="view-auth-user" class="block animate-fade-in max-w-md mx-auto mt-10">
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-100 relative overflow-hidden text-center">
+                <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-agenda-yellow to-agenda-blue"></div>
+                <h2 class="text-2xl font-bold text-agenda-blue mb-2">Bienvenido</h2>
+                <p class="text-sm text-gray-500 mb-6" id="auth-subtitle">Inicia sesión para poder agendar tu próxima cita.</p>
+
+                <!-- Tabs Login / Register -->
+                <div class="flex mb-6 border-b border-gray-200">
+                    <button onclick="toggleAuthMode('login')" id="auth-tab-login" class="flex-1 py-2 font-bold text-agenda-blue border-b-2 border-agenda-yellow">Ingresar</button>
+                    <button onclick="toggleAuthMode('register')" id="auth-tab-register" class="flex-1 py-2 font-bold text-gray-400 border-b-2 border-transparent hover:text-gray-600 transition">Crear Cuenta</button>
+                </div>
+
+                <!-- Form Login -->
+                <form id="form-login" onsubmit="handleUserLogin(event)" class="space-y-4 text-left block">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Correo Electrónico</label>
+                        <input type="email" id="login-email" required placeholder="tu@correo.com" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Contraseña</label>
+                        <input type="password" id="login-pass" required placeholder="••••••••" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition">
+                    </div>
+                    <button type="submit" class="w-full bg-agenda-blue text-white font-bold py-3 rounded-lg hover:bg-blue-900 transition mt-2 shadow-sm">Entrar a mi cuenta</button>
+                </form>
+
+                <!-- Form Register -->
+                <form id="form-register" onsubmit="handleUserRegister(event)" class="space-y-4 text-left hidden">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Nombre Completo</label>
+                        <input type="text" id="reg-nombre" required placeholder="Ej. Juan Pérez" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Teléfono</label>
+                        <input type="tel" id="reg-tel" required placeholder="1234567890" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Correo Electrónico</label>
+                        <input type="email" id="reg-email" required placeholder="tu@correo.com" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Crea una Contraseña</label>
+                        <input type="password" id="reg-pass" required placeholder="••••••••" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition">
+                    </div>
+                    <button type="submit" class="w-full bg-agenda-yellow text-agenda-blue font-bold py-3 rounded-lg hover:bg-yellow-500 transition mt-2 shadow-sm">Registrarme</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- VISTA PRINCIPAL (LOGEADO) -->
+        <section id="view-public" class="hidden animate-fade-in">
+            <div class="mb-6 mt-2 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-agenda-blue flex items-center gap-2">
+                        Hola, <span id="user-welcome-name" class="text-agenda-yellow">Usuario</span> 👋
+                    </h2>
+                    <p class="text-sm text-gray-600">Sistema de agendamiento y control</p>
+                </div>
+                <!-- Tabs -->
+                <div class="flex gap-2 border-b border-gray-300 w-full sm:w-auto overflow-x-auto no-scrollbar">
+                    <button onclick="switchPublicTab('agendar')" id="tab-agendar" class="px-4 py-2 tab-active whitespace-nowrap">Agendar Cita</button>
+                    <button onclick="switchPublicTab('mis-citas')" id="tab-mis-citas" class="px-4 py-2 tab-inactive whitespace-nowrap">Mis Citas</button>
+                </div>
+            </div>
+
+            <!-- Tab: Agendar -->
+            <div id="user-agendar" class="block">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                        <div>
+                            <h3 class="font-bold text-lg">Horarios Disponibles</h3>
+                            <p class="text-sm text-gray-500">Haz clic en un horario para reservarlo.</p>
+                        </div>
+                        <div class="w-full md:w-auto">
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Filtrar por Admin:</label>
+                            <select id="public-admin-filter" onchange="loadPublicSlots()" class="w-full md:w-64 p-2 border border-gray-200 bg-gray-50 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition text-sm font-medium text-agenda-blue">
+                                <option value="">Cualquier Administrador</option>
+                                <option value="Admin 1">Admin 1</option>
+                                <option value="Admin 2">Admin 2</option>
+                                <option value="Admin 3">Admin 3</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="public-slots-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="text-center text-gray-500 py-8 col-span-full">Cargando horarios disponibles...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Mis Citas -->
+            <div id="user-mis-citas" class="hidden">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <h3 class="font-bold text-lg mb-4">Historial de Mis Citas</h3>
+                    <div id="my-meetings-container" class="space-y-3">
+                        <div class="text-center text-gray-500 py-4">Buscando tus registros...</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal: Agendar Reunión Confirmación Rápida -->
+    <div id="modal-agendar" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden transform transition-all scale-95 opacity-0" id="modal-agendar-content">
+            <div class="bg-agenda-blue text-white p-4 flex justify-between items-center">
+                <h3 class="font-bold text-lg">Confirmar Reserva</h3>
+                <button onclick="closeModal('modal-agendar')" class="text-white hover:text-gray-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-6">
+                <!-- Resumen Cita -->
+                <div class="bg-agenda-light p-4 border border-agenda-yellow/50 rounded-xl mb-6">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="bg-agenda-yellow p-2 rounded-lg text-white">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium">Fecha Programada</p>
+                            <p class="font-bold text-agenda-blue" id="modal-fecha-txt"></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="bg-blue-100 p-2 rounded-lg text-agenda-blue">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium">Horario y Admin</p>
+                            <p class="font-bold text-agenda-blue" id="modal-hora-txt"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="form-agendar" onsubmit="handleAgendar(event)">
+                    <input type="hidden" id="modal-slot-id">
+                    <input type="hidden" id="modal-slot-fecha">
+                    <input type="hidden" id="modal-slot-hora">
+                    <input type="hidden" id="modal-slot-admin">
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1 text-gray-700">Notas / Motivo de la Cita (Opcional)</label>
+                        <textarea id="agenda-notas" rows="2" placeholder="Ej. Quiero saber más sobre su producto especial..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition resize-none"></textarea>
+                    </div>
+
+                    <p class="text-xs text-center text-gray-400 mb-4 px-2">Tus datos personales (Nombre, Tel, Correo) se vincularán automáticamente gracias a tu sesión.</p>
+
+                    <button type="submit" id="btn-agendar-submit" class="w-full bg-agenda-blue text-white text-lg font-bold py-3 rounded-lg hover:bg-blue-900 transition shadow-md flex justify-center items-center gap-2">
+                        Confirmar y Agendar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tostadas -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        /* ==========================================
+           CONFIGURACIÓN SUPABASE
+           ========================================== */
+        const SUPABASE_URL = "https://fujcwsmggnstyremteco.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_kZGPsLXJRA4EG-aBKyrs6g_coUa_07m";
+
+        let db = null;
+        let isSupabaseConfigured = false;
+
+        try {
+            if (SUPABASE_URL !== "AQUI_TU_URL" && SUPABASE_ANON_KEY !== "AQUI_TU_ANON_KEY") {
+                db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                isSupabaseConfigured = true;
+                logConsole('Supabase inicializado correctamente.');
+                
+                if (localStorage.getItem('agenda_admin_id')) {
+                    window.location.href = 'admin.html';
+                }
+
+                setupRealtime();
+            } else {
+                showToast('Advertencia: Base de datos no conectada.', 'error', 5000);
+            }
+        } catch (e) { console.error('Error al inicializar Supabase: ', e); }
+
+        // Estado local de la aplicación
+        let availableSlots = [];
+        let currentPersonaId = null;
+        let currentPersonaName = null;
+
+        /* ==========================================
+           UTILIDADES (Toasts, Modales)
+           ========================================== */
+
+        function showToast(message, type = 'success', duration = 3000) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgClass = type === 'success' ? 'bg-green-600' : 'bg-agenda-red';
+            const icon = type === 'success' ?
+                '<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' :
+                '<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+            toast.className = `${bgClass} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transform transition-all translate-y-full opacity-0 duration-300 pointer-events-auto max-w-sm`;
+            toast.innerHTML = `${icon} <span class="text-sm font-medium">${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-y-full', 'opacity-0'), 10);
+            setTimeout(() => { toast.classList.add('translate-y-full', 'opacity-0'); setTimeout(() => toast.remove(), 300); }, duration);
+        }
+
+        function logConsole(msg, type = 'info') { console.log(`[AgendaBot] ${type.toUpperCase()}:`, msg); }
+
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            const content = document.getElementById(`${id}-content`);
+            modal.classList.remove('hidden');
+            setTimeout(() => content.classList.remove('scale-95', 'opacity-0'), 10);
+        }
+
+        function closeModal(id) {
+            const content = document.getElementById(`${id}-content`);
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => document.getElementById(id).classList.add('hidden'), 200);
+        }
+
+        /* ==========================================
+           LÓGICA DE AUTENTICACIÓN (CLIENTES/PERSONAS)
+           ========================================== */
+
+        function toggleAuthMode(mode) {
+            const isLogin = mode === 'login';
+            document.getElementById('form-login').style.display = isLogin ? 'block' : 'none';
+            document.getElementById('form-register').style.display = !isLogin ? 'block' : 'none';
+            document.getElementById('auth-tab-login').className = isLogin ? 'flex-1 py-2 font-bold text-agenda-blue border-b-2 border-agenda-yellow' : 'flex-1 py-2 font-bold text-gray-400 border-b-2 border-transparent hover:text-gray-600 transition';
+            document.getElementById('auth-tab-register').className = !isLogin ? 'flex-1 py-2 font-bold text-agenda-blue border-b-2 border-agenda-yellow' : 'flex-1 py-2 font-bold text-gray-400 border-b-2 border-transparent hover:text-gray-600 transition';
+        }
+
+        async function handleUserLogin(e) {
+            e.preventDefault();
+            if (!isSupabaseConfigured) return;
+            const correo = document.getElementById('login-email').value.trim();
+            const pass = document.getElementById('login-pass').value.trim();
+            
+            try {
+                const btn = e.target.querySelector('button');
+                btn.innerHTML = 'Ingresando...';
+
+                // 1. Intentar logear como Admin
+                const { data: adminData } = await db.from('usuarios').select('*').eq('correo', correo).eq('password', pass).single();
+                if (adminData) {
+                    localStorage.setItem('agenda_admin_id', adminData.id);
+                    localStorage.setItem('agenda_admin_name', adminData.nombre);
+                    showToast(`Redirigiendo a tu Portal Admin...`, 'success');
+                    setTimeout(() => window.location.href = 'admin.html', 800);
+                    return;
+                }
+
+                // 2. Intentar logear como Cliente Público
+                const { data, error } = await db.from('personas').select('*').eq('correo', correo).eq('password', pass).single();
+                
+                if (!data) throw new Error('Credenciales incorrectas');
+
+                currentPersonaId = data.id;
+                currentPersonaName = data.nombre;
+                
+                showToast(`Hola de nuevo, ${currentPersonaName}`);
+                finishLogin();
+            } catch (error) {
+                showToast(error.message, 'error');
+                e.target.querySelector('button').innerHTML = 'Entrar a mi cuenta';
+            }
+        }
+
+        async function handleUserRegister(e) {
+            e.preventDefault();
+            if (!isSupabaseConfigured) return;
+            const nombre = document.getElementById('reg-nombre').value.trim();
+            const tel = document.getElementById('reg-tel').value.trim();
+            const correo = document.getElementById('reg-email').value.trim();
+            const pass = document.getElementById('reg-pass').value.trim();
+            
+            try {
+                const btn = e.target.querySelector('button');
+                btn.innerHTML = 'Creando cuenta...';
+
+                // Cliente normal
+                const { data: existData } = await db.from('personas').select('id').eq('correo', correo).single();
+                if (existData) throw new Error('El correo ya está registrado. Inicia sesión.');
+
+                const { data: newP, error } = await db.from('personas').insert([{ nombre: nombre, telefono: tel, correo: correo, password: pass }]).select().single();
+                
+                if (error) throw new Error(error.message);
+
+                currentPersonaId = newP.id;
+                currentPersonaName = newP.nombre;
+                
+                showToast(`¡Cuenta creada con éxito!`);
+                finishLogin();
+            } catch (error) {
+                showToast(error.message, 'error');
+                e.target.querySelector('button').innerHTML = 'Registrarme';
+            }
+        }
+
+        function finishLogin() {
+            document.getElementById('view-auth-user').classList.add('hidden');
+            document.getElementById('view-public').classList.remove('hidden');
+            document.getElementById('btn-logout').classList.remove('hidden');
+            document.getElementById('user-welcome-name').innerText = currentPersonaName;
+            
+            switchPublicTab('agendar');
+        }
+
+        function logoutUser() {
+            currentPersonaId = null;
+            currentPersonaName = null;
+            document.getElementById('view-auth-user').classList.remove('hidden');
+            document.getElementById('view-public').classList.add('hidden');
+            document.getElementById('btn-logout').classList.add('hidden');
+        }
+
+        /* ==========================================
+           LÓGICA PÚBLICA (TABS & VIEWS)
+           ========================================== */
+
+        function switchPublicTab(tab) {
+            ['agendar', 'mis-citas'].forEach(t => {
+                const isActive = t === tab;
+                document.getElementById(`user-${t}`).style.display = isActive ? 'block' : 'none';
+                document.getElementById(`tab-${t}`).className = isActive ? 'px-4 py-2 tab-active whitespace-nowrap' : 'px-4 py-2 tab-inactive whitespace-nowrap hover:text-agenda-blue transition';
+            });
+
+            if (tab === 'agendar') loadPublicSlots();
+            if (tab === 'mis-citas') loadMisCitas();
+        }
+
+        async function loadPublicSlots() {
+            const container = document.getElementById('public-slots-container');
+            if (!isSupabaseConfigured) return;
+
+            try {
+                container.innerHTML = '<div class="col-span-full py-8 text-center"><div class="inline-block animate-spin w-8 h-8 border-4 border-agenda-yellow border-t-transparent rounded-full mb-2"></div><p class="text-gray-500">Cargando...</p></div>';
+
+                let today = new Date().toISOString().split('T')[0];
+                const { data: dispData, error: dispError } = await db
+                    .from('disponibilidad')
+                    .select('*, usuarios(nombre)')
+                    .gte('fecha', today)
+                    .order('fecha', { ascending: true })
+                    .order('hora_inicio', { ascending: true });
+
+                if (dispError) throw dispError;
+
+                const { data: reuData, error: reuError } = await db.from('reuniones').select('fecha, hora');
+                if (reuError) throw reuError;
+
+                const occupiedSet = new Set(reuData.map(r => `${r.fecha}_${r.hora}`));
+                availableSlots = dispData.filter(d => !occupiedSet.has(`${d.fecha}_${d.hora_inicio}`));
+
+                // Populate Admin Dropdown if not populated yet (Opcional, pero dejaremos el hardcode para seguir la UI exacta o los traemos locales)
+                const adminFilter = document.getElementById('public-admin-filter').value;
+                let finalSlots = availableSlots;
+                if (adminFilter) {
+                    finalSlots = availableSlots.filter(s => s.usuarios && s.usuarios.nombre === adminFilter);
+                }
+
+                renderPublicSlots(finalSlots);
+            } catch (error) {
+                container.innerHTML = `<div class="col-span-full text-center text-red-500 p-4 border border-red-200 bg-red-50 rounded-lg">Error DB: ${error.message}</div>`;
+            }
+        }
+
+        function renderPublicSlots(slots) {
+            const container = document.getElementById('public-slots-container');
+            if (slots.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300"><p class="text-gray-500 font-medium mb-1">No hay horarios disponibles.</p><p class="text-sm">Prueba ajustando el filtro de administrador.</p></div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            slots.forEach(slot => {
+                const el = document.createElement('div');
+                el.className = 'bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between transition hover:shadow-md hover:border-agenda-yellow/50';
+
+                const dateObj = new Date(slot.fecha + 'T12:00:00');
+                const dateStr = dateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+                const adminNom = slot.usuarios ? slot.usuarios.nombre : 'Desconocido';
+
+                el.innerHTML = `
+                    <div class="mb-5">
+                        <div class="flex items-center gap-2 mb-2 text-agenda-blue">
+                            <svg class="w-5 h-5 text-agenda-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            <span class="font-bold capitalize">${dateStr}</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-gray-600 mb-3">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span class="font-mono text-sm">${slot.hora_inicio.substring(0, 5)} - ${slot.hora_fin.substring(0, 5)}</span>
+                        </div>
+                        <div class="text-xs font-semibold bg-gray-100 text-gray-700 inline-block px-3 py-1.5 rounded-full">
+                            Asesor: <span class="text-agenda-blue">${adminNom}</span>
+                        </div>
+                    </div>
+                    <button onclick='openAgendarModal(${JSON.stringify(slot)})' class="w-full bg-white text-agenda-blue border-2 border-agenda-blue font-bold py-2 rounded-lg hover:bg-agenda-blue hover:text-white transition focus:ring-4 focus:ring-blue-100">
+                        Seleccionar Horario
+                    </button>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        async function loadMisCitas() {
+            const container = document.getElementById('my-meetings-container');
+            if (!isSupabaseConfigured || !currentPersonaId) return;
+
+            try {
+                const { data, error } = await db.from('reuniones')
+                    .select('*, usuarios(nombre)')
+                    .eq('persona_id', currentPersonaId)
+                    .order('fecha', { ascending: false })
+                    .order('hora', { ascending: false });
+
+                if (error) throw error;
+
+                if (data.length === 0) {
+                    container.innerHTML = '<div class="text-center py-8 text-gray-400 border-2 border-dashed rounded-lg bg-gray-50">Aún no tienes reuniones agendadas.</div>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                data.forEach(m => {
+                    let badgeClass = 'bg-gray-100 text-gray-800 border-gray-200';
+                    if (m.estado === 'Pendiente') badgeClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                    if (m.estado === 'Aceptada') badgeClass = 'bg-green-100 text-green-800 border-green-200';
+                    if (m.estado === 'Rechazada') badgeClass = 'bg-red-100 text-red-800 border-red-200';
+
+                    const adminStr = m.usuarios ? m.usuarios.nombre : 'Por Asignar';
+
+                    const el = document.createElement('div');
+                    el.className = 'p-4 border border-gray-100 rounded-lg bg-white flex flex-col md:flex-row md:items-center justify-between gap-4 transition shadow-sm';
+                    el.innerHTML = `
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <span class="text-xs px-2.5 py-1 rounded-full font-bold ${badgeClass} border">${m.estado || 'Pendiente'}</span>
+                                <span class="text-sm font-medium text-gray-500">Código Ref: ${m.id.substring(0,8)}</span>
+                            </div>
+                            <h4 class="font-bold text-agenda-blue text-lg flex items-center gap-2">
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                ${m.fecha} a las ${m.hora.substring(0, 5)}
+                            </h4>
+                            <div class="mt-2 flex items-center gap-2">
+                                <div class="w-6 h-6 rounded-full bg-agenda-yellow flex items-center justify-center text-white text-xs font-bold">A</div>
+                                <span class="text-sm font-medium text-gray-700">${adminStr}</span>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(el);
+                });
+            } catch (err) {
+                container.innerHTML = `<div class="text-red-500">Error cargando tus citas.</div>`;
+            }
+        }
+
+        function openAgendarModal(slotObj) {
+            document.getElementById('modal-fecha-txt').textContent = slotObj.fecha;
+            document.getElementById('modal-hora-txt').textContent = `${slotObj.hora_inicio.substring(0, 5)} - Asesor: ${slotObj.usuarios ? slotObj.usuarios.nombre : 'Desconocido'}`;
+
+            document.getElementById('modal-slot-id').value = slotObj.id;
+            document.getElementById('modal-slot-fecha').value = slotObj.fecha;
+            document.getElementById('modal-slot-hora').value = slotObj.hora_inicio;
+            document.getElementById('modal-slot-admin').value = slotObj.admin_id;
+            document.getElementById('agenda-notas').value = '';
+
+            openModal('modal-agendar');
+        }
+
+        async function handleAgendar(e) {
+            e.preventDefault();
+            if (!isSupabaseConfigured || !currentPersonaId) return;
+
+            const btn = document.getElementById('btn-agendar-submit');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="animate-pulse">Reservando tu espacio...</span>';
+
+            const fecha = document.getElementById('modal-slot-fecha').value;
+            const hora = document.getElementById('modal-slot-hora').value;
+            const slotId = document.getElementById('modal-slot-id').value;
+            const adminId = document.getElementById('modal-slot-admin').value;
+            const notas = document.getElementById('agenda-notas').value.trim();
+
+            try {
+                // Validación para doble reserva en el backend
+                const { data: checkData } = await db.from('reuniones').select('id').eq('fecha', fecha).eq('hora', hora);
+                if (checkData && checkData.length > 0) throw new Error("¡Vaya! Este horario acaba de ser ocupado por alguien más.");
+
+                // Inserción en Reuniones usando el personaId logeado
+                const { error } = await db.from('reuniones').insert([{
+                        persona_id: currentPersonaId,
+                        disponibilidad_id: slotId,
+                        fecha: fecha,
+                        hora: hora,
+                        estado: 'Pendiente',
+                        admin_id: adminId || null,
+                        conclusiones: notas
+                    }]);
+
+                if (error) throw error;
+
+                showToast('¡Reunión agendada con éxito!');
+                closeModal('modal-agendar');
+                switchPublicTab('mis-citas'); // Llevarlo a ver su nueva cita
+
+            } catch (error) {
+                showToast(error.message, 'error', 5000);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Confirmar y Agendar';
+            }
+        }
+
+        /* ==========================================
+           REALTIME SUPABASE (Suscripciones)
+           ========================================== */
+        function setupRealtime() {
+            try {
+                db.channel('public-updates')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'reuniones' }, p => {
+                    if (document.getElementById('user-agendar').style.display === 'block') loadPublicSlots();
+                    if (document.getElementById('user-mis-citas').style.display === 'block') loadMisCitas();
+                })
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'disponibilidad' }, p => {
+                    if (document.getElementById('user-agendar').style.display === 'block') {
+                        loadPublicSlots();
+                        showToast('Nuevos horarios detectados', 'success', 2000);
+                    }
+                }).subscribe();
+            } catch (err) {}
+        }
+    </script>
+</body>
+</html>
