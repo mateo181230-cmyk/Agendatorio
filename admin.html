@@ -150,6 +150,28 @@
             #admin-testing .max-w-xl {
                 max-width: 100%;
             }
+
+            /* Mes: convertir eventos en puntos circulares de color */
+            .fc-dayGridMonth-view .fc-event {
+                width: 8px !important;
+                height: 8px !important;
+                border-radius: 50% !important;
+                margin: 3px auto !important;
+                border: none !important;
+                position: relative !important;
+            }
+            .fc-dayGridMonth-view .fc-event-main {
+                display: none !important; /* Ocultar el texto */
+            }
+            
+            /* Vista diaria/semanal: ajustar texto para que no se corte */
+            .fc-timeGrid-view .fc-event-main {
+                white-space: normal !important;
+                overflow-wrap: break-word;
+                font-size: 0.65rem !important;
+                line-height: 1.1 !important;
+                padding: 3px !important;
+            }
         }
 
         @media (max-width: 480px) {
