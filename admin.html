@@ -151,33 +151,19 @@
                 max-width: 100%;
             }
 
-            /* Mes: convertir eventos en pequeños recuadros y mostrar ! si es pendiente */
-            .fc-dayGridMonth-view .fc-event {
-                width: 16px !important;
-                height: 16px !important;
-                border-radius: 4px !important;
-                margin: 2px auto !important;
-                border: none !important;
-                overflow: hidden !important;
-                position: relative !important;
+            /* Mes: Ocultar ventanitas individuales y resumir visualmente el estatus en el contenedor del día */
+            .fc-dayGridMonth-view .fc-event.is-reunion {
+                display: none !important;
             }
-            .fc-dayGridMonth-view .fc-event-main {
-                display: none !important; /* Ocultar el texto real */
+
+            /* Resaltar el contenedor del día según estatus de sus citas */
+            .fc-dayGridMonth-view .mobile-day-pending .fc-daygrid-day-frame {
+                border-bottom: 4px solid #9ca3af !important; /* Gris */
+                background-color: #f3f4f6 !important;
             }
-            .fc-dayGridMonth-view .fc-event.cita-pendiente::after {
-                content: '!';
-                position: absolute;
-                top: 0; left: 0;
-                width: 100%; height: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-size: 12px;
-                font-weight: 900;
-            }
-            .fc-dayGrid-day-bottom {
-                margin-top: 2px !important;
+            .fc-dayGridMonth-view .mobile-day-resolved .fc-daygrid-day-frame {
+                border-bottom: 4px solid #22c55e !important; /* Verde */
+                background-color: #dcfce7 !important;
             }
             
             /* Vista diaria/semanal: ajustar texto para que no se corte */
@@ -422,6 +408,7 @@
         let meetingsList = [];
         let currentAdminId = null;
         let currentAdminName = null;
+        let estadoDias = {};
 
         try {
             if (SUPABASE_URL !== "AQUI_TU_URL" && SUPABASE_ANON_KEY !== "AQUI_TU_ANON_KEY") {
@@ -601,6 +588,9 @@
                             deleteDisponibilidad(evt.extendedProps.id);
                         }
                     }
+                },
+                datesSet: function() {
+                    if (typeof updateMobileDayClasses === 'function') updateMobileDayClasses();
                 }
             });
             calendarInstance.render();
@@ -689,6 +679,7 @@
 
                 const eventos = [];
                 const myColor = document.getElementById('admin-color').value;
+                estadoDias = {};
 
                 dispData.forEach(d => {
                     eventos.push({
@@ -703,12 +694,16 @@
                 });
 
                 reuData.forEach(r => {
-                    let color = '#9ca3af'; // gris (pendiente)
-                    let pClass = '';
-                    if(r.estado === 'Pendiente') pClass = 'cita-pendiente';
-                    if(r.estado === 'Aceptada') color = '#3b82f6'; // azul
-                    if(r.estado === 'Rechazada') color = '#ef4444'; // rojo
+                    let color = '#9ca3af'; // gris por defecto (pendiente)
+                    if(r.estado === 'Aceptada') color = '#22c55e'; // verde
+                    if(r.estado === 'Rechazada') color = '#22c55e'; // verde
                     
+                    if(!estadoDias[r.fecha]) estadoDias[r.fecha] = { total: 0, resueltas: 0 };
+                    estadoDias[r.fecha].total++;
+                    if(r.estado === 'Aceptada' || r.estado === 'Rechazada') {
+                        estadoDias[r.fecha].resueltas++;
+                    }
+
                     eventos.push({
                         id: 'reu_' + r.id,
                         title: `${r.personas ? r.personas.nombre : 'Cita'} - ${r.estado}`,
@@ -716,14 +711,31 @@
                         end: `${r.fecha}T${increaseTimeStr(r.hora, 1)}`, 
                         backgroundColor: color,
                         borderColor: 'transparent',
-                        classNames: [pClass],
+                        classNames: ['is-reunion'],
                         extendedProps: { type: 'reunion', rawItem: r }
                     });
                 });
 
                 calendarInstance.removeAllEvents();
                 calendarInstance.addEventSource(eventos);
+                
+                setTimeout(() => updateMobileDayClasses(), 100);
             } catch (error) { logConsole('Error CalendarSync: ' + error.message, 'error'); }
+        }
+
+        function updateMobileDayClasses() {
+            document.querySelectorAll('.fc-day').forEach(el => {
+                el.classList.remove('mobile-day-pending', 'mobile-day-resolved');
+            });
+            for (let fecha in estadoDias) {
+                document.querySelectorAll(`.fc-day[data-date="${fecha}"]`).forEach(el => {
+                    if (estadoDias[fecha].resueltas < estadoDias[fecha].total) {
+                        el.classList.add('mobile-day-pending');
+                    } else if (estadoDias[fecha].total > 0) {
+                        el.classList.add('mobile-day-resolved');
+                    }
+                });
+            }
         }
 
         function increaseTimeStr(timeStr, horas) {
