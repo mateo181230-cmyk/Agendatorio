@@ -610,7 +610,7 @@
             document.getElementById('user-welcome-name').innerText = currentPersonaName;
 
             loadAdminsFilter();
-            switchPublicTab('agendar');
+            setTimeout(() => switchPublicTab('agendar'), 200); // Pequeña espera para que el DOM se actualice antes de renderizar el calendario
         }
 
         function logoutUser() {

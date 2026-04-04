@@ -151,17 +151,33 @@
                 max-width: 100%;
             }
 
-            /* Mes: convertir eventos en puntos circulares de color */
+            /* Mes: convertir eventos en pequeños recuadros y mostrar ! si es pendiente */
             .fc-dayGridMonth-view .fc-event {
-                width: 8px !important;
-                height: 8px !important;
-                border-radius: 50% !important;
-                margin: 3px auto !important;
+                width: 16px !important;
+                height: 16px !important;
+                border-radius: 4px !important;
+                margin: 2px auto !important;
                 border: none !important;
+                overflow: hidden !important;
                 position: relative !important;
             }
             .fc-dayGridMonth-view .fc-event-main {
-                display: none !important; /* Ocultar el texto */
+                display: none !important; /* Ocultar el texto real */
+            }
+            .fc-dayGridMonth-view .fc-event.cita-pendiente::after {
+                content: '!';
+                position: absolute;
+                top: 0; left: 0;
+                width: 100%; height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 12px;
+                font-weight: 900;
+            }
+            .fc-dayGrid-day-bottom {
+                margin-top: 2px !important;
             }
             
             /* Vista diaria/semanal: ajustar texto para que no se corte */
@@ -492,10 +508,12 @@
             });
             if (tab === 'calendario') {
                 if (!calendarInstance) {
-                    setTimeout(() => initCalendar(), 100);
+                    setTimeout(() => initCalendar(), 200);
                 } else {
-                    calendarInstance.render();
-                    loadCalendarData();
+                    setTimeout(() => {
+                        calendarInstance.render();
+                        loadCalendarData();
+                    }, 150);
                 }
             }
         }
@@ -686,6 +704,8 @@
 
                 reuData.forEach(r => {
                     let color = '#9ca3af'; // gris (pendiente)
+                    let pClass = '';
+                    if(r.estado === 'Pendiente') pClass = 'cita-pendiente';
                     if(r.estado === 'Aceptada') color = '#3b82f6'; // azul
                     if(r.estado === 'Rechazada') color = '#ef4444'; // rojo
                     
@@ -693,10 +713,10 @@
                         id: 'reu_' + r.id,
                         title: `${r.personas ? r.personas.nombre : 'Cita'} - ${r.estado}`,
                         start: `${r.fecha}T${r.hora}`,
-                        // Suponemos que dura 1 hora por defecto en el sistema, adaptalo si la db guarda duracion
                         end: `${r.fecha}T${increaseTimeStr(r.hora, 1)}`, 
                         backgroundColor: color,
                         borderColor: 'transparent',
+                        classNames: [pClass],
                         extendedProps: { type: 'reunion', rawItem: r }
                     });
                 });
