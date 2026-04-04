@@ -337,8 +337,8 @@
                         </select>
                     </div>
                     <div class="mb-4">
-                        <label class="block text-sm font-medium mb-1">Apuntes Internos / Conclusiones</label>
-                        <textarea id="edit-conclusiones" rows="3" placeholder="Información visible sólo por admins..."
+                        <label class="block text-sm font-medium mb-1">Mensaje / Enlace para el Cliente</label>
+                        <textarea id="edit-conclusiones" rows="3" placeholder="Escribe aquí el link de Zoom, Meet, o instrucciones. El cliente lo verá en su panel..."
                             class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition"></textarea>
                     </div>
                     <button type="submit" class="w-full bg-agenda-blue text-white font-bold py-3 rounded-lg hover:bg-blue-900 transition">
@@ -433,8 +433,11 @@
                     const savedColor = localStorage.getItem('agenda_admin_color') || '#8b5cf6';
                     document.getElementById('admin-color').value = savedColor;
 
-                    switchAdminTab('calendario');
-                    setupRealtime();
+                    // Permitir que el navegador termine de dibujar el layout antes de medir el calendario
+                    setTimeout(() => {
+                        switchAdminTab('calendario');
+                        setupRealtime();
+                    }, 250);
                 } else {
                     // Si intenta entrar a admin.html sin estar logeado como admin, regresarlo al porton principal
                     window.location.href = 'index.html';
@@ -495,11 +498,15 @@
             });
             if (tab === 'calendario') {
                 if (!calendarInstance) {
-                    setTimeout(() => initCalendar(), 200);
+                    setTimeout(() => {
+                        initCalendar();
+                        setTimeout(() => calendarInstance.updateSize(), 150);
+                    }, 200);
                 } else {
                     setTimeout(() => {
                         calendarInstance.render();
                         loadCalendarData();
+                        setTimeout(() => calendarInstance.updateSize(), 150);
                     }, 150);
                 }
             }
@@ -539,6 +546,13 @@
             calendarInstance = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
                 locale: 'es',
+                buttonText: {
+                    today:    'Hoy',
+                    month:    'Mes',
+                    week:     'Semana',
+                    day:      'Día',
+                    list:     'Agenda'
+                },
                 hiddenDays: [0], // Ocultar domingo por defecto
                 slotMinTime: '06:00:00',
                 slotMaxTime: '22:00:00',
@@ -572,7 +586,10 @@
                     }
                 },
                 select: function(info) {
-                    // Acción al arrastrar un bloque de tiempo
+                    // Evitar que un click en la vista Mensual seleccione todo el día (12am-12am) e intente crear un bloque
+                    if (info.view.type === 'dayGridMonth') return;
+
+                    // Acción al arrastrar un bloque de tiempo en vistas diarias/semanales
                     selectedDateRange = info;
                     document.getElementById('disp-resumen-txt').textContent = `${info.start.toLocaleDateString()} de ${info.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} a ${info.end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
                     openModal('modal-crear-disp');
@@ -673,15 +690,25 @@
                 const { data: dispData, error: errDisp } = await db.from('disponibilidad').select('*');
                 if (errDisp) throw errDisp;
 
-                // 2. Obtener Reuniones
-                const { data: reuData, error: errReu } = await db.from('reuniones').select('*, personas(nombre)');
+                // 2. Obtener Reuniones con su disponibilidad enlazada para saber la duración real
+                const { data: reuData, error: errReu } = await db.from('reuniones').select('*, personas(nombre), disponibilidad(hora_inicio, hora_fin)');
                 if (errReu) throw errReu;
 
                 const eventos = [];
                 const myColor = document.getElementById('admin-color').value;
                 estadoDias = {};
 
+                // Identificar disponibilidades que ya están ocupadas por una cita Activa (Pendiente o Aceptada)
+                const occupiedDispIds = new Set();
+                reuData.forEach(r => {
+                    if (r.estado !== 'Rechazada' && r.disponibilidad_id) {
+                        occupiedDispIds.add(r.disponibilidad_id);
+                    }
+                });
+
                 dispData.forEach(d => {
+                    if (occupiedDispIds.has(d.id)) return; // Ocultar el bloque "Libre" si ya alguien lo agendó
+
                     eventos.push({
                         id: 'disp_' + d.id,
                         title: 'Libre',
@@ -704,11 +731,14 @@
                         estadoDias[r.fecha].resueltas++;
                     }
 
+                    // Determinar duración real de la cita con base a su disponibilidad
+                    let horaFinStr = r.disponibilidad ? r.disponibilidad.hora_fin : increaseTimeStr(r.hora, 1);
+
                     eventos.push({
                         id: 'reu_' + r.id,
                         title: `${r.personas ? r.personas.nombre : 'Cita'} - ${r.estado}`,
                         start: `${r.fecha}T${r.hora}`,
-                        end: `${r.fecha}T${increaseTimeStr(r.hora, 1)}`, 
+                        end: `${r.fecha}T${horaFinStr}`, 
                         backgroundColor: color,
                         borderColor: 'transparent',
                         classNames: ['is-reunion'],

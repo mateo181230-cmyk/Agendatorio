@@ -672,11 +672,15 @@
 
                 if (dispError) throw dispError;
 
-                const { data: reuData, error: reuError } = await db.from('reuniones').select('fecha, hora');
+                const { data: reuData, error: reuError } = await db.from('reuniones').select('disponibilidad_id, fecha, hora, estado');
                 if (reuError) throw reuError;
 
-                const occupiedSet = new Set(reuData.map(r => `${r.fecha}_${r.hora}`));
-                availableSlots = dispData.filter(d => !occupiedSet.has(`${d.fecha}_${d.hora_inicio}`));
+                // Las reuniones que no están rechazadas ocupan el horario
+                const activeReu = reuData.filter(r => r.estado !== 'Rechazada');
+                const occupiedSet = new Set(activeReu.map(r => r.disponibilidad_id ? r.disponibilidad_id : `${r.fecha}_${r.hora}`));
+                
+                // Un bloque está disponible si su ID no fue tomado o (fallback) si su fecha_hora no fue tomada
+                availableSlots = dispData.filter(d => !occupiedSet.has(d.id) && !occupiedSet.has(`${d.fecha}_${d.hora_inicio}`));
 
                 // Filtrar horas que ya pasaron hoy
                 const nowStr = new Date().toTimeString().split(' ')[0];
@@ -703,6 +707,13 @@
                 publicCalendarInstance = new FullCalendar.Calendar(calendarEl, {
                     initialView: 'dayGridMonth',
                     locale: 'es',
+                    buttonText: {
+                        today:    'Hoy',
+                        month:    'Mes',
+                        week:     'Semana',
+                        day:      'Día',
+                        list:     'Agenda'
+                    },
                     hiddenDays: [0], // Ocultar domingo
                     headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
                     dayCellClassNames: function (arg) {
@@ -884,9 +895,19 @@
                                 <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                 ${m.fecha} a las ${m.hora.substring(0, 5)}
                             </h4>
-                            <div class="mt-2 flex items-center gap-2">
-                                <div class="w-6 h-6 rounded-full bg-agenda-yellow flex items-center justify-center text-white text-xs font-bold">A</div>
-                                <span class="text-sm font-medium text-gray-700">${adminStr}</span>
+                            <div class="mt-2 text-sm flex flex-col gap-2">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 h-6 rounded-full bg-agenda-yellow flex items-center justify-center text-white text-xs font-bold">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                    </div>
+                                    <span class="font-medium text-gray-700">Asesor/a: <span class="text-agenda-blue font-bold">${adminStr}</span></span>
+                                </div>
+                                ${m.conclusiones ? `
+                                <div class="mt-1 bg-gray-50 border border-gray-200 rounded-lg p-3 text-gray-700">
+                                    <strong class="text-agenda-blue block mb-1 text-xs uppercase tracking-wider">${m.estado === 'Pendiente' ? 'Tus notas adjuntas:' : 'Información y/o Enlace de acceso:'}</strong>
+                                    <span class="whitespace-pre-wrap">${m.conclusiones}</span>
+                                </div>
+                                ` : ''}
                             </div>
                         </div>
                     `;
