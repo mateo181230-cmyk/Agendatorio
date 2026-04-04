@@ -77,6 +77,109 @@
             background-color: #93c5fd !important;
             transition: 0.2s;
         }
+
+        /* ===== MOBILE RESPONSIVE FIXES ===== */
+        @media (max-width: 768px) {
+            /* Navbar compact */
+            nav .max-w-4xl {
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+            nav h1 {
+                font-size: 0.95rem;
+            }
+            nav h1 img {
+                width: 24px;
+                height: 24px;
+            }
+
+            /* Main content less padding */
+            main.flex-grow {
+                padding: 12px 8px;
+            }
+
+            /* Calendar container adjustment */
+            #public-calendar {
+                height: auto !important;
+                min-height: 320px !important;
+            }
+            .bg-white.rounded-xl.shadow-sm.p-6 {
+                padding: 12px;
+            }
+
+            /* FullCalendar toolbar fix */
+            .fc .fc-toolbar {
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+            .fc .fc-toolbar-title {
+                font-size: 0.95rem !important;
+            }
+            .fc .fc-toolbar.fc-header-toolbar {
+                margin-bottom: 0.5em;
+            }
+            .fc .fc-button {
+                padding: 4px 8px !important;
+                font-size: 0.7rem !important;
+            }
+
+            /* Slot cards single column */
+            #public-slots-container {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Filter area stack */
+            #public-slots-wrapper .flex.flex-col.md\:flex-row {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            /* Modals full-width */
+            #modal-agendar .max-w-md,
+            #modal-sugerir .max-w-md {
+                max-width: 100%;
+                margin: 0 4px;
+                border-radius: 16px;
+            }
+
+            /* Tabs touch-friendly */
+            .flex.gap-2.border-b {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            .flex.gap-2.border-b button {
+                min-height: 44px;
+            }
+
+            /* Auth card compact */
+            #view-auth-user .bg-white {
+                padding: 20px 16px;
+            }
+            #view-auth-user {
+                margin-top: 1.5rem;
+            }
+
+            /* Mis citas cards responsive */
+            #my-meetings-container .flex.flex-col.md\:flex-row {
+                flex-direction: column;
+            }
+
+            /* Inputs touch-friendly sizing */
+            input, select, textarea {
+                font-size: 16px !important; /* Prevents zoom on iOS */
+            }
+        }
+
+        @media (max-width: 380px) {
+            nav h1 {
+                font-size: 0.85rem;
+                gap: 4px;
+            }
+            #btn-logout {
+                font-size: 0.7rem;
+                padding: 4px 8px;
+            }
+        }
     </style>
 </head>
 
@@ -191,7 +294,7 @@
                             <p class="text-sm text-gray-500">Los días sombreados en azul tienen disponibilidad. Toca
                                 cualquier fecha.</p>
                         </div>
-                        <div id="public-calendar" class="h-[60vh] min-h-[400px]"></div>
+                        <div id="public-calendar" class="min-h-[320px] sm:min-h-[400px] sm:h-[60vh]"></div>
                     </div>
 
                     <!-- Slots Wrapper -->
@@ -353,7 +456,7 @@
     </div>
 
     <!-- Tostadas -->
-    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+    <div id="toast-container" class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
     <script>
         /* ==========================================
