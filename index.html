@@ -193,6 +193,8 @@
                 Agenda Tu Cita!
             </h1>
             <div class="flex gap-2 items-center" id="nav-buttons">
+                <button id="btn-login-nav" onclick="openAuthModal()"
+                    class="px-3 py-1 bg-agenda-yellow text-agenda-blue rounded-md text-sm font-medium hover:bg-yellow-500 transition shadow-sm">Iniciar Sesión</button>
                 <button id="btn-logout" onclick="logoutUser()"
                     class="hidden px-3 py-1 bg-agenda-red text-white rounded-md text-sm font-medium hover:bg-red-800 transition shadow-sm">Cerrar
                     Sesión</button>
@@ -203,74 +205,12 @@
     <!-- Contenedor Principal -->
     <main class="flex-grow p-4 max-w-4xl mx-auto w-full">
 
-        <!-- VISTA AUTH USUARIOS (CLIENTES) -->
-        <section id="view-auth-user" class="block animate-fade-in max-w-md mx-auto mt-10">
-            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-100 relative overflow-hidden text-center">
-                <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-agenda-yellow to-agenda-blue"></div>
-                <h2 class="text-2xl font-bold text-agenda-blue mb-2">Bienvenido</h2>
-                <p class="text-sm text-gray-500 mb-6" id="auth-subtitle">Inicia sesión para poder agendar tu próxima
-                    cita.</p>
-
-                <!-- Tabs Login / Register -->
-                <div class="flex mb-6 border-b border-gray-200">
-                    <button onclick="toggleAuthMode('login')" id="auth-tab-login"
-                        class="flex-1 py-2 font-bold text-agenda-blue border-b-2 border-agenda-yellow">Ingresar</button>
-                    <button onclick="toggleAuthMode('register')" id="auth-tab-register"
-                        class="flex-1 py-2 font-bold text-gray-400 border-b-2 border-transparent hover:text-gray-600 transition">Crear
-                        Cuenta</button>
-                </div>
-
-                <!-- Form Login -->
-                <form id="form-login" onsubmit="handleUserLogin(event)" class="space-y-4 text-left block">
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Correo Electrónico</label>
-                        <input type="email" id="login-email" required placeholder="tu@correo.com"
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Contraseña</label>
-                        <input type="password" id="login-pass" required placeholder="••••••••"
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition">
-                    </div>
-                    <button type="submit"
-                        class="w-full bg-agenda-blue text-white font-bold py-3 rounded-lg hover:bg-blue-900 transition mt-2 shadow-sm">Entrar
-                        a mi cuenta</button>
-                </form>
-
-                <!-- Form Register -->
-                <form id="form-register" onsubmit="handleUserRegister(event)" class="space-y-4 text-left hidden">
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Nombre Completo</label>
-                        <input type="text" id="reg-nombre" required placeholder="Ej. Juan Pérez"
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Teléfono</label>
-                        <input type="tel" id="reg-tel" required placeholder="1234567890"
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Correo Electrónico</label>
-                        <input type="email" id="reg-email" required placeholder="tu@correo.com"
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Crea una Contraseña</label>
-                        <input type="password" id="reg-pass" required placeholder="••••••••"
-                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition">
-                    </div>
-                    <button type="submit"
-                        class="w-full bg-agenda-yellow text-agenda-blue font-bold py-3 rounded-lg hover:bg-yellow-500 transition mt-2 shadow-sm">Registrarme</button>
-                </form>
-            </div>
-        </section>
-
-        <!-- VISTA PRINCIPAL (LOGEADO) -->
-        <section id="view-public" class="hidden animate-fade-in">
+        <!-- VISTA PRINCIPAL (LOGEADO / NO LOGEADO) -->
+        <section id="view-public" class="block animate-fade-in">
             <div class="mb-6 mt-2 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
                     <h2 class="text-2xl font-bold text-agenda-blue flex items-center gap-2">
-                        Hola, <span id="user-welcome-name" class="text-agenda-yellow">Usuario</span> 👋
+                        Hola, <span id="user-welcome-name" class="text-agenda-yellow">Invitado</span> 👋
                     </h2>
                     <p class="text-sm text-gray-600">Sistema de agendamiento y control</p>
                 </div>
@@ -279,7 +219,7 @@
                     <button onclick="switchPublicTab('agendar')" id="tab-agendar"
                         class="px-4 py-2 tab-active whitespace-nowrap">Agendar Cita</button>
                     <button onclick="switchPublicTab('mis-citas')" id="tab-mis-citas"
-                        class="px-4 py-2 tab-inactive whitespace-nowrap">Mis Citas</button>
+                        class="px-4 py-2 tab-inactive whitespace-nowrap" style="display: none;">Mis Citas</button>
                 </div>
             </div>
 
@@ -455,6 +395,79 @@
         </div>
     </div>
 
+    <!-- Modal: Autenticación / Contacto -->
+    <div id="modal-auth"
+        class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden transform transition-all scale-95 opacity-0 text-center relative"
+            id="modal-auth-content">
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-agenda-yellow to-agenda-blue"></div>
+            
+            <div class="flex justify-end p-2 pb-0">
+                <button onclick="closeModal('modal-auth')" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="px-8 pb-8 pt-2">
+                <h2 class="text-2xl font-bold text-agenda-blue mb-2">Datos de Contacto</h2>
+                <p class="text-sm text-gray-500 mb-6" id="auth-subtitle">Para agendar una cita necesitamos tus datos. Si deseas iniciar sesión recuerda usar tu correo y tu contraseña.</p>
+
+                <!-- Tabs Login / Register -->
+                <div class="flex mb-6 border-b border-gray-200">
+                    <button onclick="toggleAuthMode('register')" id="auth-tab-register"
+                        class="flex-1 py-2 font-bold text-agenda-blue border-b-2 border-agenda-yellow">Soy Nuevo</button>
+                    <button onclick="toggleAuthMode('login')" id="auth-tab-login"
+                        class="flex-1 py-2 font-bold text-gray-400 border-b-2 border-transparent hover:text-gray-600 transition">Ya tengo cuenta</button>
+                </div>
+
+                <!-- Form Register -->
+                <form id="form-register" onsubmit="handleUserRegister(event)" class="space-y-4 text-left block">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Nombre Completo</label>
+                        <input type="text" id="reg-nombre" required placeholder="Ej. Juan Pérez"
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Teléfono</label>
+                        <input type="tel" id="reg-tel" required placeholder="1234567890"
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Correo Electrónico</label>
+                        <input type="email" id="reg-email" required placeholder="tu@correo.com"
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Crea una Contraseña</label>
+                        <input type="password" id="reg-pass" required placeholder="••••••••"
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition">
+                    </div>
+                    <button type="submit"
+                        class="w-full bg-agenda-yellow text-agenda-blue font-bold py-3 rounded-lg hover:bg-yellow-500 transition mt-2 shadow-sm">Continuar</button>
+                </form>
+
+                <!-- Form Login -->
+                <form id="form-login" onsubmit="handleUserLogin(event)" class="space-y-4 text-left hidden">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Correo Electrónico</label>
+                        <input type="email" id="login-email" required placeholder="tu@correo.com"
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Contraseña</label>
+                        <input type="password" id="login-pass" required placeholder="••••••••"
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agenda-blue outline-none transition">
+                    </div>
+                    <button type="submit"
+                        class="w-full bg-agenda-blue text-white font-bold py-3 rounded-lg hover:bg-blue-900 transition mt-2 shadow-sm">Entrar
+                        a mi cuenta</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Tostadas -->
     <div id="toast-container" class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
@@ -479,6 +492,10 @@
                 }
 
                 setupRealtime();
+                
+                // Cargar vista pública por defecto
+                loadAdminsFilter();
+                switchPublicTab('agendar');
             } else {
                 showToast('Advertencia: Base de datos no conectada.', 'error', 5000);
             }
@@ -490,6 +507,8 @@
         let currentPersonaName = null;
         let publicCalendarInstance = null;
         let selectedDateForSlots = null;
+        let pendingAction = null;
+        let pendingActionData = null;
 
         /* ==========================================
            UTILIDADES (Toasts, Modales)
@@ -603,22 +622,41 @@
             }
         }
 
+        function openAuthModal(action = null, data = null) {
+            pendingAction = action;
+            pendingActionData = data;
+            
+            // Forzamos que, al abrir por defecto como 'sugerir' o 'agendar', muestre la pestaña "Soy Nuevo" si no tiene cuenta
+            // o se mantenga donde está. Dejaremos su toggle mode actual.
+            openModal('modal-auth');
+        }
+
         function finishLogin() {
-            document.getElementById('view-auth-user').classList.add('hidden');
-            document.getElementById('view-public').classList.remove('hidden');
+            closeModal('modal-auth');
+            document.getElementById('btn-login-nav').classList.add('hidden');
             document.getElementById('btn-logout').classList.remove('hidden');
             document.getElementById('user-welcome-name').innerText = currentPersonaName;
-
-            loadAdminsFilter();
-            setTimeout(() => switchPublicTab('agendar'), 200); // Pequeña espera para que el DOM se actualice antes de renderizar el calendario
+            document.getElementById('tab-mis-citas').style.display = 'inline-block'; // Mostrar la pestaña
+            
+            // Reanudar accion pendiente
+            if (pendingAction === 'agendar') {
+                openAgendarModal(pendingActionData);
+            } else if (pendingAction === 'sugerir') {
+                openSugerirModal(pendingActionData);
+            }
+            
+            pendingAction = null;
+            pendingActionData = null;
         }
 
         function logoutUser() {
             currentPersonaId = null;
             currentPersonaName = null;
-            document.getElementById('view-auth-user').classList.remove('hidden');
-            document.getElementById('view-public').classList.add('hidden');
+            document.getElementById('btn-login-nav').classList.remove('hidden');
             document.getElementById('btn-logout').classList.add('hidden');
+            document.getElementById('user-welcome-name').innerText = 'Invitado'; // Ocultar nombre
+            document.getElementById('tab-mis-citas').style.display = 'none'; // Ocultar
+            switchPublicTab('agendar');
         }
 
         /* ==========================================
@@ -748,6 +786,10 @@
         }
 
         function openSugerirModal(dateStr) {
+            if (!currentPersonaId) {
+                openAuthModal('sugerir', dateStr);
+                return;
+            }
             const d = new Date(dateStr + "T12:00:00");
             document.getElementById('modal-sugerir-fecha-txt').textContent = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
             document.getElementById('modal-sugerir-fecha').value = dateStr;
@@ -919,6 +961,10 @@
         }
 
         function openAgendarModal(slotObj) {
+            if (!currentPersonaId) {
+                openAuthModal('agendar', slotObj);
+                return;
+            }
             document.getElementById('modal-fecha-txt').textContent = slotObj.fecha;
             document.getElementById('modal-hora-txt').textContent = `${slotObj.hora_inicio.substring(0, 5)} - Asesor: ${slotObj.usuarios ? slotObj.usuarios.nombre : 'Desconocido'}`;
 
